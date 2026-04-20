@@ -47,6 +47,7 @@ public class EpidemicQueuePolicies extends ActiveRouter {
 	 */
 	protected EpidemicQueuePolicies(EpidemicQueuePolicies r) {
 		super(r);
+		this.queueType = r.queueType;
 	}
 
 	@Override
