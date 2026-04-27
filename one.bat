@@ -9,6 +9,14 @@ set "memory=512M"
 :: ^ Modify the memory limit as needed, 512 is kinda low for dtnsim lol, but
 :: this is here to not let dtnsim to hog resources when you want to multitask
 
+:: Override memory if provided as first parameter with -m flag
+if "%1"=="-m" (
+    set "memory=%2"
+    :: Remove -m and memory value from parameters
+    shift
+    shift
+)
+
 echo [INFO] Starting DTNSim...
 
 :: Validate target directory exists
