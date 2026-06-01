@@ -150,7 +150,7 @@ public abstract class DTNSimUI {
 			scen.addUpdateListener((UpdateListener)r);
 		}
 		if (r instanceof ApplicationListener) {
-			scen.addApplicationListener((ApplicationListener)r);
+			scen.addApplicationListener((ApplicationListener) r);
 		}
 
 		this.reports.add(r);

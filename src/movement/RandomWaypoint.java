@@ -15,17 +15,18 @@ public class RandomWaypoint extends MovementModel {
 	/** how many waypoints should there be per path */
 	private static final int PATH_LENGTH = 1;
 	private Coord lastWaypoint;
-	
+
 	public RandomWaypoint(Settings settings) {
 		super(settings);
 	}
-	
+
 	protected RandomWaypoint(RandomWaypoint rwp) {
 		super(rwp);
 	}
-	
+
 	/**
 	 * Returns a possible (random) placement for a host
+	 * 
 	 * @return Random position on the map
 	 */
 	@Override
@@ -36,28 +37,28 @@ public class RandomWaypoint extends MovementModel {
 		this.lastWaypoint = c;
 		return c;
 	}
-	
+
 	@Override
 	public Path getPath() {
 		Path p;
 		p = new Path(generateSpeed());
 		p.addWaypoint(lastWaypoint.clone());
 		Coord c = lastWaypoint;
-		
-		for (int i=0; i<PATH_LENGTH; i++) {
+
+		for (int i = 0; i < PATH_LENGTH; i++) {
 			c = randomCoord();
-			p.addWaypoint(c);	
+			p.addWaypoint(c);
 		}
-		
+
 		this.lastWaypoint = c;
 		return p;
 	}
-	
+
 	@Override
 	public RandomWaypoint replicate() {
 		return new RandomWaypoint(this);
 	}
-	
+
 	protected Coord randomCoord() {
 		return new Coord(rng.nextDouble() * getMaxX(),
 				rng.nextDouble() * getMaxY());

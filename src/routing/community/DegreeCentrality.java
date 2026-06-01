@@ -71,5 +71,10 @@ public class DegreeCentrality implements Centrality
 	{
 		return new DegreeCentrality(this);
 	}
+	@Override
+	public int[] getGlobalCentralities(Map<DTNHost, List<Duration>> connHistory) {
+		// TODO Auto-generated method stub
+		throw new UnsupportedOperationException("Unimplemented method 'getGlobalCentralities'");
+	}
 
 }

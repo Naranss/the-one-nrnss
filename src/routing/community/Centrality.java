@@ -61,6 +61,8 @@ public interface Centrality
 	 * @return A duplicate Centrality instance
 	 */
 	public Centrality replicate();
+
+	public int[] getGlobalCentralities(Map<DTNHost, List<Duration>> connHistory);
 	
 	//Ini tambahanku sementara
 	//public int [] getGlobalArrayCentrality (Map<DTNHost, List<Duration>> connHistory);

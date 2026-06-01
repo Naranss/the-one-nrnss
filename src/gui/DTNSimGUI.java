@@ -4,14 +4,11 @@
  */
 package gui;
 
-import core.*;
-import gui.playfield.NodeGraphic;
-import gui.playfield.PlayField;
-
-import java.awt.*;
+import java.awt.Color;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.event.MouseWheelListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.lang.reflect.InvocationTargetException;
@@ -20,6 +17,13 @@ import javax.swing.JOptionPane;
 import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 
+import core.Coord;
+import core.DTN2Manager;
+import core.DTNHost;
+import core.Settings;
+import core.SimClock;
+import gui.playfield.NodeGraphic;
+import gui.playfield.PlayField;
 import movement.Path;
 import ui.DTNSimUI;
 
@@ -67,19 +71,26 @@ public class DTNSimGUI extends DTNSimUI {
 		// optionally not process trails to save CPU time
 		NodeGraphic.processTrails(processTrails);
 		if (processTrails) {
-			NodeGraphic.initializeTrailConfiguration(trailsEnabled, trailMaxLength, Color.decode(trailColorStr), trailFade);
+			NodeGraphic.initializeTrailConfiguration(trailsEnabled, trailMaxLength, Color.decode(trailColorStr),
+					trailFade);
 		}
 
 		this.field = new PlayField(world, this);
 
 		this.field.addMouseListener(new PlayfieldMouseHandler());
 		this.field.addMouseWheelListener(new PlayfieldMouseHandler());
+		this.field.addKeyListener(new PlayfieldKeyHandler());
+		this.field.setFocusable(true);
 
 		this.guiControls = new GUIControls(this, this.field);
 		this.eventLogPanel = new EventLogPanel(this);
 		this.infoPanel = new InfoPanel(this);
 		this.main = new MainWindow(this.scen.getName(), world, field,
-			guiControls, infoPanel, eventLogPanel, this);
+				guiControls, infoPanel, eventLogPanel, this);
+
+		// Add global key listener to the main window
+		this.main.addKeyListener(new PlayfieldKeyHandler());
+		this.main.setFocusable(true);
 
 		scen.addMessageListener(eventLogPanel);
 		scen.addConnectionListener(eventLogPanel);
@@ -139,7 +150,7 @@ public class DTNSimGUI extends DTNSimUI {
 
 		if (!simCancelled) { // NOT cancelled -> leave the GUI running
 			JOptionPane.showMessageDialog(getParentFrame(),
-				"Simulation done");
+					"Simulation done");
 		} else { // was cancelled -> exit immediately
 			System.exit(0);
 		}
@@ -155,21 +166,20 @@ public class DTNSimGUI extends DTNSimUI {
 		String title = e.getClass().getSimpleName() + " (simulation paused)";
 		String msg = e.getMessage();
 		String txt = (msg != null ? msg : "") + " at simtime " +
-			SimClock.getIntTime() + "\n\ncaught at:\n" +
-			e.getStackTrace()[0].toString() +
-			"\nNote that the simulation might be in inconsistent state, " +
-			"continue only with caution.\n\n Show rest of the stack trace?";
+				SimClock.getIntTime() + "\n\ncaught at:\n" +
+				e.getStackTrace()[0].toString() +
+				"\nNote that the simulation might be in inconsistent state, " +
+				"continue only with caution.\n\n Show rest of the stack trace?";
 		// rest of the update cycle that caused the exception is skipped
 		// so the user is warned about the consequences
-
 
 		if (guiControls != null) {
 			guiControls.setPaused(true);
 		}
 
 		int selection = JOptionPane.showOptionDialog(getParentFrame(), txt,
-			title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
-			null, null, null);
+				title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE,
+				null, null, null);
 
 		if (selection == 0) {
 			txt = "";
@@ -177,10 +187,9 @@ public class DTNSimGUI extends DTNSimUI {
 				txt += trace.toString() + "\n";
 			}
 			JOptionPane.showMessageDialog(getParentFrame(), txt,
-				"stack trace", JOptionPane.INFORMATION_MESSAGE);
+					"stack trace", JOptionPane.INFORMATION_MESSAGE);
 		}
 	}
-
 
 	/**
 	 * Closes the program if simulation is done or cancels it.
@@ -201,7 +210,7 @@ public class DTNSimGUI extends DTNSimUI {
 
 		// update only if long enough simTime has passed (and not forced)
 		if (!forcedUpdate && guiUpdateInterval > (SimClock.getTime()
-			- this.lastUpdate)) {
+				- this.lastUpdate)) {
 			return;
 		}
 
@@ -231,7 +240,7 @@ public class DTNSimGUI extends DTNSimUI {
 	private void updateView() {
 		double simTime = SimClock.getTime();
 		this.lastUpdate = simTime;
-		guiControls.setSimTime(simTime); //update time to control panel
+		guiControls.setSimTime(simTime); // update time to control panel
 
 		this.field.updateField();
 	}
@@ -276,9 +285,9 @@ public class DTNSimGUI extends DTNSimUI {
 		double midX, midY;
 
 		midX = sp.getHorizontalScrollBar().getValue() +
-			sp.getViewport().getWidth() / 2;
+				sp.getViewport().getWidth() / 2;
 		midY = sp.getVerticalScrollBar().getValue() +
-			sp.getViewport().getHeight() / 2;
+				sp.getViewport().getHeight() / 2;
 
 		return this.field.getWorldPosition(new Coord(midX, midY));
 	}
@@ -336,8 +345,7 @@ public class DTNSimGUI extends DTNSimUI {
 	/**
 	 * Handler for playfield's mouse clicks.
 	 */
-	private class PlayfieldMouseHandler extends MouseAdapter implements
-		MouseWheelListener {
+	private class PlayfieldMouseHandler extends MouseAdapter {
 		/**
 		 * If mouse button is clicked, centers view at that location.
 		 */
@@ -349,6 +357,31 @@ public class DTNSimGUI extends DTNSimUI {
 
 		public void mouseWheelMoved(java.awt.event.MouseWheelEvent e) {
 			guiControls.changeZoom(e.getWheelRotation());
+		}
+	}
+
+	/**
+	 * Handler for playfield's keyboard input.
+	 * Supports "+" and "-" keys for zooming.
+	 */
+	private class PlayfieldKeyHandler extends KeyAdapter {
+		@Override
+		public void keyPressed(KeyEvent e) {
+			char keyChar = e.getKeyChar();
+			int keyCode = e.getKeyCode();
+			
+			// Check for zoom in: + or = key
+			if (keyChar == '+' || keyChar == '=' || keyCode == KeyEvent.VK_PLUS || 
+			    keyCode == KeyEvent.VK_EQUALS) {
+				guiControls.changeZoom(1);
+			} 
+			// Check for zoom out: - or underscore key
+			else if (keyChar == '-' || keyChar == '_' || keyCode == KeyEvent.VK_MINUS) {
+				guiControls.changeZoom(-1);
+			}
+			else if (keyChar == 'p' || keyChar == 'P') {
+				guiControls.setPaused(!guiControls.isPaused());
+			}
 		}
 	}
 
